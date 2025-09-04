@@ -1,663 +1,981 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Hidroponik Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        * {
-            font-family: 'Inter', sans-serif;
-        }
-        
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-        
-        .status-normal { background-color: #10b981; }
-        .status-warning { background-color: #f59e0b; }
-        .status-danger { background-color: #ef4444; }
-        
-        .pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: .5;
-            }
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-        
-        .alert-banner {
-            animation: slideInDown 0.5s ease-out;
-        }
-        
-        @keyframes slideInDown {
-            from {
-                transform: translate3d(0, -100%, 0);
-                visibility: visible;
-            }
-            to {
-                transform: translate3d(0, 0, 0);
-            }
-        }
-        
-        .data-card {
-            background: linear-gradient(145deg, #ffffff, #f8fafc);
-            border: 1px solid #e2e8f0;
-        }
-        
-        .control-button {
-            transition: all 0.2s ease;
-        }
-        
-        .control-button:hover {
-            transform: scale(1.05);
-        }
-        
-        .control-button:active {
-            transform: scale(0.95);
-        }
-        
-        .sidebar {
-            transition: transform 0.3s ease;
-        }
-        
-        .sidebar-mobile {
-            transform: translateX(-100%);
-        }
-        
-        .sidebar-mobile.open {
-            transform: translateX(0);
-        }
-        
-        .blur-backdrop {
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.9);
-        }
-    </style>
+  <meta charset="utf-8" />
+  <title>Generator Data Dummy: Suhu, Kelembaban, Tekanan, UV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom scrollbar for data table */
+    .thin-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .thin-scrollbar::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #9ca3af, #6b7280);
+      border-radius: 6px;
+    }
+    .thin-scrollbar::-webkit-scrollbar-track {
+      background: #111827;
+    }
+
+    /* Chart tooltip */
+    .chart-tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(17, 24, 39, 0.9);
+      color: #e5e7eb;
+      border: 1px solid rgba(75,85,99,0.6);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      min-width: 160px;
+      transform: translate(-50%, -100%);
+      white-space: nowrap;
+    }
+
+    /* Input range styling */
+    input[type="range"] {
+      accent-color: #22c55e;
+      cursor: pointer;
+    }
+
+    /* Sticky control panel on wide screens */
+    @media (min-width: 1024px) {
+      .sticky-panel {
+        position: sticky;
+        top: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow: auto;
+      }
+    }
+
+    /* Grid labels for min/max controls */
+    .minmax-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+  </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Header -->
-    <header class="gradient-bg text-white shadow-lg">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-                        <i class="fas fa-seedling text-green-600 text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold">Smart Hidroponik</h1>
-                        <p class="text-blue-100">Dashboard Monitoring</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-right hidden md:block">
-                        <p class="text-blue-100">Terakhir Update</p>
-                        <p class="text-white font-semibold" id="lastUpdate">--:--:--</p>
-                    </div>
-                    <div class="status-indicator status-normal pulse"></div>
-                    <span class="text-sm">Online</span>
-                </div>
-            </div>
-        </div>
-    </header>
+<body class="bg-slate-950 text-slate-100">
+  <header class="relative overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:
+      radial-gradient(1000px 400px at 10% 0%, rgba(56,189,248,0.25), transparent 40%),
+      radial-gradient(800px 300px at 90% 10%, rgba(34,197,94,0.25), transparent 40%),
+      radial-gradient(600px 300px at 50% 10%, rgba(168,85,247,0.22), transparent 40%);">
+    </div>
+    <div class="max-w-7xl mx-auto px-4 pt-10 pb-6 relative">
+      <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">
+        Generator Data Dummy IoT Lingkungan
+      </h1>
+      <p class="text-slate-300 mt-2 max-w-3xl">
+        Buat data dummy sederhana untuk parameter suhu, kelembaban, tekanan udara, dan intensitas UV. Atur jumlah data yang ingin digenerate, interval waktu, distribusi, rentang nilai, dan opsi siklus harian realistis. Data dapat diekspor ke CSV atau JSON.
+      </p>
+    </div>
+  </header>
 
-    <!-- Alert Banner -->
-    <div id="alertBanner" class="hidden alert-banner bg-yellow-500 text-white px-4 py-2">
-        <div class="container mx-auto flex items-center justify-between">
-            <div class="flex items-center">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                <span id="alertMessage">Peringatan sistem</span>
+  <main class="max-w-7xl mx-auto px-4 pb-20">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Control Panel -->
+      <aside class="lg:col-span-1 bg-slate-900/60 backdrop-blur rounded-2xl border border-slate-800 p-4 lg:p-5 sticky-panel">
+        <h2 class="text-lg font-semibold mb-3">Pengaturan Generator</h2>
+
+        <div class="space-y-4">
+          <div class="bg-slate-900 rounded-xl border border-slate-800 p-4">
+            <label class="block text-sm text-slate-300 mb-2" for="countInput">Jumlah data</label>
+            <div class="flex items-center gap-3">
+              <input id="countInput" type="number" min="1" max="10000" value="200"
+                     class="w-36 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <input id="countRange" type="range" min="1" max="10000" step="1" value="200" class="flex-1"/>
             </div>
-            <button onclick="closeAlert()" class="text-white hover:text-gray-200">
-                <i class="fas fa-times"></i>
+            <p class="text-xs text-slate-400 mt-1">Batas maksimum 10.000 baris untuk performa.</p>
+          </div>
+
+          <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="startTime" class="block text-sm text-slate-300 mb-1">Waktu mulai</label>
+                <input id="startTime" type="datetime-local"
+                       class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <p class="text-xs text-slate-400 mt-1">Default: sekarang</p>
+              </div>
+              <div>
+                <label for="intervalMinutes" class="block text-sm text-slate-300 mb-1">Interval (menit)</label>
+                <input id="intervalMinutes" type="number" min="1" max="1440" value="5"
+                       class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <p class="text-xs text-slate-400 mt-1">1 - 1440</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="distribution" class="block text-sm text-slate-300 mb-1">Distribusi</label>
+                <select id="distribution"
+                        class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                  <option value="uniform">Uniform (seragam)</option>
+                  <option value="normal">Normal (Gauss)</option>
+                </select>
+              </div>
+              <div class="flex items-end">
+                <label class="inline-flex items-center gap-2 select-none">
+                  <input id="dailyCycle" type="checkbox" class="w-4 h-4 accent-emerald-500">
+                  <span class="text-sm text-slate-300">Siklus harian realistis</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ranges -->
+          <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 space-y-4">
+            <h3 class="font-medium">Rentang Parameter</h3>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-sm text-slate-300">Suhu (°C)</label>
+                <span class="text-xs text-slate-400">Default 20 - 35</span>
+              </div>
+              <div class="minmax-grid">
+                <input id="tempMin" type="number" value="20" step="0.1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input id="tempMax" type="number" value="35" step="0.1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-sm text-slate-300">Kelembaban (%)</label>
+                <span class="text-xs text-slate-400">Default 30 - 90</span>
+              </div>
+              <div class="minmax-grid">
+                <input id="humMin" type="number" value="30" step="1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input id="humMax" type="number" value="90" step="1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-sm text-slate-300">Tekanan (hPa)</label>
+                <span class="text-xs text-slate-400">Default 990 - 1030</span>
+              </div>
+              <div class="minmax-grid">
+                <input id="presMin" type="number" value="990" step="0.1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input id="presMax" type="number" value="1030" step="0.1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-sm text-slate-300">UV Index (0–11+)</label>
+                <span class="text-xs text-slate-400">Default 0 - 11</span>
+              </div>
+              <div class="minmax-grid">
+                <input id="uvMin" type="number" value="0" step="0.1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input id="uvMax" type="number" value="11" step="0.1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3 pt-2">
+              <button id="randomizeRanges" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">
+                Acak Rentang
+              </button>
+              <button id="resetRanges" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">
+                Reset Default
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3 pt-2">
+            <button id="generateBtn" class="flex-1 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-semibold transition-colors">
+              Generate Data
             </button>
+            <button id="clearBtn" class="px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">
+              Bersihkan
+            </button>
+          </div>
+
+          <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 space-y-3">
+            <h3 class="font-medium">Ekspor</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <button id="exportCsv" class="px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-slate-900 font-semibold transition-colors">
+                Unduh CSV
+              </button>
+              <button id="exportJson" class="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-slate-900 font-semibold transition-colors">
+                Unduh JSON
+              </button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <button id="copyCsv" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">
+                Salin CSV
+              </button>
+              <button id="copyJson" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">
+                Salin JSON
+              </button>
+            </div>
+            <p id="exportInfo" class="text-xs text-slate-400">Belum ada data untuk diekspor.</p>
+          </div>
         </div>
+      </aside>
+
+      <!-- Content -->
+      <section class="lg:col-span-2 space-y-6">
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
+            <div class="text-slate-400 text-xs">Suhu (°C)</div>
+            <div class="flex items-baseline gap-2">
+              <div id="statTempAvg" class="text-2xl font-bold">-</div>
+              <div class="text-xs text-slate-400">min <span id="statTempMin">-</span> | max <span id="statTempMax">-</span></div>
+            </div>
+          </div>
+          <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
+            <div class="text-slate-400 text-xs">Kelembaban (%)</div>
+            <div class="flex items-baseline gap-2">
+              <div id="statHumAvg" class="text-2xl font-bold">-</div>
+              <div class="text-xs text-slate-400">min <span id="statHumMin">-</span> | max <span id="statHumMax">-</span></div>
+            </div>
+          </div>
+          <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
+            <div class="text-slate-400 text-xs">Tekanan (hPa)</div>
+            <div class="flex items-baseline gap-2">
+              <div id="statPresAvg" class="text-2xl font-bold">-</div>
+              <div class="text-xs text-slate-400">min <span id="statPresMin">-</span> | max <span id="statPresMax">-</span></div>
+            </div>
+          </div>
+          <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
+            <div class="text-slate-400 text-xs">UV Index</div>
+            <div class="flex items-baseline gap-2">
+              <div id="statUvAvg" class="text-2xl font-bold">-</div>
+              <div class="text-xs text-slate-400">min <span id="statUvMin">-</span> | max <span id="statUvMax">-</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 md:p-5 relative">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h3 class="font-semibold">Visualisasi Data</h3>
+            <div class="flex flex-wrap gap-3 text-xs">
+              <span class="inline-flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background:#f59e0b"></span> Suhu (dinormalisasi)
+              </span>
+              <span class="inline-flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background:#22c55e"></span> Kelembaban (dinormalisasi)
+              </span>
+              <span class="inline-flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background:#60a5fa"></span> Tekanan (dinormalisasi)
+              </span>
+              <span class="inline-flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background:#a78bfa"></span> UV (dinormalisasi)
+              </span>
+            </div>
+          </div>
+          <div class="relative">
+            <canvas id="chart" class="w-full h-[320px] rounded-lg bg-slate-950 border border-slate-800"></canvas>
+            <div id="chartTooltip" class="chart-tooltip hidden"></div>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">
+            Catatan: Semua seri dinormalisasi 0–1 berdasarkan rentang yang Anda tentukan agar dapat ditampilkan pada satu grafik.
+          </p>
+        </div>
+
+        <!-- Table and Pagination -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800">
+          <div class="p-4 md:p-5 border-b border-slate-800 flex items-center justify-between gap-4 flex-wrap">
+            <h3 class="font-semibold">Data Tergenerasi</h3>
+            <div class="flex items-center gap-3">
+              <label class="text-sm text-slate-300">Baris per halaman</label>
+              <select id="pageSize" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+                <option value="250">250</option>
+              </select>
+              <div class="text-sm text-slate-400">
+                Total: <span id="totalRows">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-auto thin-scrollbar max-h-[480px]">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-950 sticky top-0 z-10">
+                <tr>
+                  <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">#</th>
+                  <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">Timestamp</th>
+                  <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">Suhu (°C)</th>
+                  <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">Kelembaban (%)</th>
+                  <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">Tekanan (hPa)</th>
+                  <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">UV Index</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="p-4 md:p-5 border-t border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+            <div class="text-sm text-slate-400">
+              Halaman <span id="pageIndex">0</span> / <span id="pageCount">0</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="firstPage" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">Pertama</button>
+              <button id="prevPage" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">Sebelumnya</button>
+              <button id="nextPage" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">Berikutnya</button>
+              <button id="lastPage" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">Terakhir</button>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
+  </main>
 
-    <!-- Main Content -->
-    <div class="container mx-auto px-4 py-8">
-        <!-- System Overview Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            <!-- Suhu Udara -->
-            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-thermometer-half text-red-600 text-xl"></i>
-                    </div>
-                    <span class="status-indicator status-normal" id="tempStatus"></span>
-                </div>
-                <h3 class="text-gray-600 text-sm font-medium mb-1">Suhu Udara</h3>
-                <div class="flex items-baseline">
-                    <span class="text-3xl font-bold text-gray-800" id="temperature">25.4</span>
-                    <span class="text-gray-500 ml-1">°C</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">Optimal: 22-28°C</p>
-            </div>
-
-            <!-- Kelembaban Udara -->
-            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-tint text-blue-600 text-xl"></i>
-                    </div>
-                    <span class="status-indicator status-normal" id="humidityStatus"></span>
-                </div>
-                <h3 class="text-gray-600 text-sm font-medium mb-1">Kelembaban Udara</h3>
-                <div class="flex items-baseline">
-                    <span class="text-3xl font-bold text-gray-800" id="humidity">68</span>
-                    <span class="text-gray-500 ml-1">%</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">Optimal: 60-80%</p>
-            </div>
-
-            <!-- Tekanan Udara -->
-            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-wind text-purple-600 text-xl"></i>
-                    </div>
-                    <span class="status-indicator status-normal" id="pressureStatus"></span>
-                </div>
-                <h3 class="text-gray-600 text-sm font-medium mb-1">Tekanan Udara</h3>
-                <div class="flex items-baseline">
-                    <span class="text-3xl font-bold text-gray-800" id="pressure">1013</span>
-                    <span class="text-gray-500 ml-1">hPa</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">Normal: 1000-1020 hPa</p>
-            </div>
-
-            <!-- pH Air -->
-            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-flask text-green-600 text-xl"></i>
-                    </div>
-                    <span class="status-indicator status-warning" id="phStatus"></span>
-                </div>
-                <h3 class="text-gray-600 text-sm font-medium mb-1">pH Air</h3>
-                <div class="flex items-baseline">
-                    <span class="text-3xl font-bold text-gray-800" id="ph">6.8</span>
-                    <span class="text-gray-500 ml-1">pH</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">Optimal: 5.5-6.5 pH</p>
-            </div>
-
-            <!-- Intensitas UV -->
-            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-sun text-yellow-600 text-xl"></i>
-                    </div>
-                    <span class="status-indicator status-normal" id="uvStatus"></span>
-                </div>
-                <h3 class="text-gray-600 text-sm font-medium mb-1">Intensitas UV</h3>
-                <div class="flex items-baseline">
-                    <span class="text-3xl font-bold text-gray-800" id="uv">7.2</span>
-                    <span class="text-gray-500 ml-1">Index</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">Optimal: 6-9 Index</p>
-            </div>
-        </div>
-
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Temperature & Humidity Chart -->
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Suhu & Kelembaban (24 Jam)</h3>
-                    <div class="flex space-x-2">
-                        <span class="flex items-center text-sm text-gray-600">
-                            <div class="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                            Suhu
-                        </span>
-                        <span class="flex items-center text-sm text-gray-600">
-                            <div class="w-3 h-3 bg-blue-500 rounded mr-2"></div>
-                            Kelembaban
-                        </span>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="tempHumidityChart"></canvas>
-                </div>
-            </div>
-
-            <!-- pH & UV Chart -->
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">pH & UV Index (24 Jam)</h3>
-                    <div class="flex space-x-2">
-                        <span class="flex items-center text-sm text-gray-600">
-                            <div class="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                            pH
-                        </span>
-                        <span class="flex items-center text-sm text-gray-600">
-                            <div class="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                            UV
-                        </span>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="phUvChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Control Panel & System Info -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Control Panel -->
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-6">Panel Kontrol</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <button class="control-button bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex flex-col items-center space-y-2">
-                        <i class="fas fa-power-off text-xl"></i>
-                        <span class="text-sm">Pompa Air</span>
-                    </button>
-                    <button class="control-button bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-4 rounded-lg flex flex-col items-center space-y-2">
-                        <i class="fas fa-lightbulb text-xl"></i>
-                        <span class="text-sm">LED Grow</span>
-                    </button>
-                    <button class="control-button bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg flex flex-col items-center space-y-2">
-                        <i class="fas fa-fan text-xl"></i>
-                        <span class="text-sm">Ventilasi</span>
-                    </button>
-                    <button class="control-button bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg flex flex-col items-center space-y-2">
-                        <i class="fas fa-spray-can text-xl"></i>
-                        <span class="text-sm">Nutrisi</span>
-                    </button>
-                </div>
-
-                <!-- System Status -->
-                <div class="mt-8">
-                    <h4 class="font-semibold text-gray-800 mb-4">Status Sistem</h4>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div class="flex items-center">
-                                <div class="status-indicator status-normal"></div>
-                                <span class="text-gray-700">Pompa Air</span>
-                            </div>
-                            <span class="text-sm text-green-600 font-medium">Aktif</span>
-                        </div>
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div class="flex items-center">
-                                <div class="status-indicator status-normal"></div>
-                                <span class="text-gray-700">LED Grow Light</span>
-                            </div>
-                            <span class="text-sm text-green-600 font-medium">Aktif</span>
-                        </div>
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div class="flex items-center">
-                                <div class="status-indicator status-warning"></div>
-                                <span class="text-gray-700">Sistem Ventilasi</span>
-                            </div>
-                            <span class="text-sm text-yellow-600 font-medium">Standby</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- System Information -->
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-6">Informasi Sistem</h3>
-                
-                <!-- Plant Growth Stage -->
-                <div class="mb-6">
-                    <div class="flex items-center justify-between mb-2">
-                        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1089b6a5-c4ae-4c48-bddc-9d53d0cc53b8.png" alt="Healthy green hydroponic lettuce plants growing in nutrient solution under LED grow lights" class="w-full h-32 object-cover rounded-lg mb-4"/>
-                    </div>
-                    <h4 class="font-semibold text-gray-800 mb-2">Tahap Pertumbuhan</h4>
-                    <div class="bg-green-100 rounded-lg p-3">
-                        <p class="text-green-800 font-medium">Vegetatif</p>
-                        <p class="text-green-600 text-sm">Hari ke-21 dari 45 hari</p>
-                    </div>
-                </div>
-
-                <!-- Quick Stats -->
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Uptime Sistem</span>
-                        <span class="font-semibold text-gray-800">7d 12h 34m</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Data Points</span>
-                        <span class="font-semibold text-gray-800">2,847</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Koneksi WiFi</span>
-                        <span class="font-semibold text-green-600">Stabil</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Konsumsi Daya</span>
-                        <span class="font-semibold text-gray-800">145W</span>
-                    </div>
-                </div>
-
-                <!-- Weather Info -->
-                <div class="mt-6 pt-6 border-t border-gray-200">
-                    <h4 class="font-semibold text-gray-800 mb-3">Cuaca Eksternal</h4>
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <i class="fas fa-cloud-sun text-yellow-500 text-2xl mr-3"></i>
-                            <div>
-                                <p class="font-medium text-gray-800">Berawan</p>
-                                <p class="text-sm text-gray-600">29°C, 65% RH</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <footer class="max-w-7xl mx-auto px-4 pb-10">
+    <div class="text-xs text-slate-500">
+      Tips: Aktifkan "Siklus harian realistis" untuk pola yang lebih alami. Anda juga dapat menyesuaikan rentang agar grafik lebih informatif.
     </div>
+  </footer>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 mt-12">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="flex items-center space-x-2 mb-4 md:mb-0">
-                    <i class="fas fa-seedling text-green-600"></i>
-                    <span class="text-gray-600">Smart Hidroponik Dashboard v1.2</span>
-                </div>
-                <div class="flex items-center space-x-4 text-sm text-gray-500">
-                    <span>Data diperbarui setiap 30 detik</span>
-                    <span>•</span>
-                    <span>Status: Terhubung</span>
-                </div>
-            </div>
+  <script>
+    // Helpers
+    const $ = (sel) => document.querySelector(sel);
+    const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const map01 = (v, a, b) => (v - a) / (b - a);
+
+    function randUniform(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function randNormal(mean = 0, stdDev = 1) {
+      // Box-Muller
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      return mean + z * stdDev;
+    }
+
+    function randNormalClamped(min, max) {
+      const mean = (min + max) / 2;
+      const stdDev = (max - min) / 6; // ~99.7% in range
+      return clamp(randNormal(mean, stdDev), min, max);
+    }
+
+    // Inputs
+    const inputs = {
+      count: $('#countInput'),
+      countRange: $('#countRange'),
+      startTime: $('#startTime'),
+      interval: $('#intervalMinutes'),
+      distribution: $('#distribution'),
+      dailyCycle: $('#dailyCycle'),
+      tempMin: $('#tempMin'),
+      tempMax: $('#tempMax'),
+      humMin: $('#humMin'),
+      humMax: $('#humMax'),
+      presMin: $('#presMin'),
+      presMax: $('#presMax'),
+      uvMin: $('#uvMin'),
+      uvMax: $('#uvMax'),
+    };
+
+    // Buttons
+    const btn = {
+      generate: $('#generateBtn'),
+      clear: $('#clearBtn'),
+      randomizeRanges: $('#randomizeRanges'),
+      resetRanges: $('#resetRanges'),
+      exportCsv: $('#exportCsv'),
+      exportJson: $('#exportJson'),
+      copyCsv: $('#copyCsv'),
+      copyJson: $('#copyJson'),
+      firstPage: $('#firstPage'),
+      prevPage: $('#prevPage'),
+      nextPage: $('#nextPage'),
+      lastPage: $('#lastPage'),
+    };
+
+    // Stats elements
+    const stat = {
+      temp: { avg: $('#statTempAvg'), min: $('#statTempMin'), max: $('#statTempMax') },
+      hum:  { avg: $('#statHumAvg'),  min: $('#statHumMin'),  max: $('#statHumMax') },
+      pres: { avg: $('#statPresAvg'), min: $('#statPresMin'), max: $('#statPresMax') },
+      uv:   { avg: $('#statUvAvg'),   min: $('#statUvMin'),   max: $('#statUvMax') },
+    };
+
+    // Table and pagination
+    const tableBody = $('#tableBody');
+    const totalRowsEl = $('#totalRows');
+    const pageSizeEl = $('#pageSize');
+    const pageIndexEl = $('#pageIndex');
+    const pageCountEl = $('#pageCount');
+
+    // Chart
+    const canvas = $('#chart');
+    const tooltip = $('#chartTooltip');
+    const ctx = canvas.getContext('2d');
+
+    // Export info
+    const exportInfo = $('#exportInfo');
+
+    // Data store
+    let data = [];
+    let pageSize = parseInt(pageSizeEl.value, 10);
+    let pageIndex = 0;
+
+    function setNowToStartTime() {
+      const now = new Date();
+      // Round to nearest minute for aesthetics
+      now.setSeconds(0);
+      now.setMilliseconds(0);
+      const tzoffset = now.getTimezoneOffset() * 60000; // ms
+      const localISOTime = new Date(now - tzoffset).toISOString().slice(0, 16);
+      inputs.startTime.value = localISOTime;
+    }
+    setNowToStartTime();
+
+    // Link count input and range
+    function syncCountInputs(src) {
+      const val = clamp(parseInt(src.value || '0', 10), 1, 10000);
+      inputs.count.value = val;
+      inputs.countRange.value = val;
+    }
+    inputs.count.addEventListener('input', (e) => syncCountInputs(e.target));
+    inputs.countRange.addEventListener('input', (e) => syncCountInputs(e.target));
+
+    // Range validation helper
+    function ensureMinLessThanMax(minEl, maxEl, epsilon = 0.0001) {
+      let min = parseFloat(minEl.value);
+      let max = parseFloat(maxEl.value);
+      if (isNaN(min)) min = 0;
+      if (isNaN(max)) max = min + 1;
+      if (min >= max) {
+        max = min + epsilon;
+        maxEl.value = max.toFixed(2);
+      }
+    }
+    ['temp','hum','pres','uv'].forEach(key => {
+      const minEl = inputs[`${key}Min`];
+      const maxEl = inputs[`${key}Max`];
+      minEl.addEventListener('change', () => ensureMinLessThanMax(minEl, maxEl));
+      maxEl.addEventListener('change', () => ensureMinLessThanMax(minEl, maxEl));
+    });
+
+    // Randomize and reset ranges
+    btn.randomizeRanges.addEventListener('click', () => {
+      // Reasonable environment ranges with slight randomization
+      const ranges = {
+        temp: [randUniform(15, 24), randUniform(26, 38)],
+        hum:  [randUniform(25, 45), randUniform(65, 95)],
+        pres: [randUniform(985, 999), randUniform(1015, 1040)],
+        uv:   [0, randUniform(8, 12)],
+      };
+      // Ensure min < max
+      Object.entries(ranges).forEach(([k, [mn, mx]]) => {
+        if (mn >= mx) mx = mn + 1;
+        inputs[`${k}Min`].value = mn.toFixed(k === 'hum' ? 0 : 1);
+        inputs[`${k}Max`].value = mx.toFixed(k === 'hum' ? 0 : 1);
+      });
+    });
+
+    btn.resetRanges.addEventListener('click', () => {
+      inputs.tempMin.value = 20; inputs.tempMax.value = 35;
+      inputs.humMin.value  = 30; inputs.humMax.value  = 90;
+      inputs.presMin.value = 990; inputs.presMax.value = 1030;
+      inputs.uvMin.value   = 0; inputs.uvMax.value    = 11;
+    });
+
+    // Daily cycle functions (normalized 0..1)
+    function cycleTemp(hour) {
+      // Peak around 15:00, trough around 5:00
+      const t = (hour - 15) / 24 * 2 * Math.PI;
+      return clamp(0.5 + 0.4 * Math.sin(t), 0, 1);
+    }
+    function cycleHumidity(hour) {
+      const t = (hour - 15) / 24 * 2 * Math.PI;
+      return clamp(0.6 - 0.3 * Math.sin(t), 0, 1);
+    }
+    function cyclePressure(hour) {
+      // Small gentle oscillation
+      const t = (hour - 9) / 24 * 2 * Math.PI;
+      return clamp(0.5 + 0.05 * Math.sin(t), 0, 1);
+    }
+    function cycleUV(hour) {
+      // 0 at night, bell-like during the day, peak around noon
+      // Map [6..18] hours to [0..pi], then sin^1.5
+      const daylight = clamp((hour - 6) / 12, 0, 1) * Math.PI;
+      return Math.pow(Math.sin(daylight), 1.5) || 0;
+    }
+
+    function generateData() {
+      const count = clamp(parseInt(inputs.count.value || '0', 10), 1, 10000);
+      const intervalMin = clamp(parseInt(inputs.interval.value || '1', 10), 1, 1440);
+      const distribution = inputs.distribution.value;
+      const useCycle = inputs.dailyCycle.checked;
+
+      const start = new Date(inputs.startTime.value ? inputs.startTime.value : new Date());
+      const ranges = {
+        temp: [parseFloat(inputs.tempMin.value), parseFloat(inputs.tempMax.value)],
+        hum:  [parseFloat(inputs.humMin.value),  parseFloat(inputs.humMax.value)],
+        pres: [parseFloat(inputs.presMin.value), parseFloat(inputs.presMax.value)],
+        uv:   [parseFloat(inputs.uvMin.value),   parseFloat(inputs.uvMax.value)],
+      };
+      // Validate ranges
+      Object.entries(ranges).forEach(([k, [mn, mx]]) => {
+        if (!(isFinite(mn) && isFinite(mx)) || mn >= mx) {
+          throw new Error(`Rentang tidak valid untuk ${k}`);
+        }
+      });
+
+      const rows = [];
+      for (let i = 0; i < count; i++) {
+        const ts = new Date(start.getTime() + i * intervalMin * 60000);
+        const hour = ts.getHours() + ts.getMinutes() / 60;
+
+        let temp, hum, pres, uv;
+
+        if (useCycle) {
+          // Base values from cycles
+          const tN = cycleTemp(hour);
+          const hN = cycleHumidity(hour);
+          const pN = cyclePressure(hour);
+          const uN = cycleUV(hour);
+
+          // Map to actual ranges
+          temp = lerp(ranges.temp[0], ranges.temp[1], tN);
+          hum  = lerp(ranges.hum[0],  ranges.hum[1],  hN);
+          pres = lerp(ranges.pres[0], ranges.pres[1], pN);
+          uv   = lerp(ranges.uv[0],   ranges.uv[1],   uN);
+
+          // Add small noise depending on distribution
+          const noiseFrac = {
+            temp: 0.02,
+            hum: 0.03,
+            pres: 0.005,
+            uv: 0.05
+          };
+          const addNoise = (val, key) => {
+            const amp = (ranges[key][1] - ranges[key][0]) * noiseFrac[key];
+            const noise = distribution === 'normal'
+              ? randNormal(0, amp / 2)
+              : randUniform(-amp, amp);
+            return clamp(val + noise, ranges[key][0], ranges[key][1]);
+          };
+
+          temp = addNoise(temp, 'temp');
+          hum  = addNoise(hum, 'hum');
+          pres = addNoise(pres, 'pres');
+          uv   = addNoise(uv, 'uv');
+
+          // Zero UV at "night" more aggressively
+          if (uN < 0.02) uv = 0;
+        } else {
+          temp = (distribution === 'normal')
+              ? randNormalClamped(ranges.temp[0], ranges.temp[1])
+              : randUniform(ranges.temp[0], ranges.temp[1]);
+          hum  = (distribution === 'normal')
+              ? randNormalClamped(ranges.hum[0], ranges.hum[1])
+              : randUniform(ranges.hum[0], ranges.hum[1]);
+          pres = (distribution === 'normal')
+              ? randNormalClamped(ranges.pres[0], ranges.pres[1])
+              : randUniform(ranges.pres[0], ranges.pres[1]);
+          uv   = (distribution === 'normal')
+              ? randNormalClamped(ranges.uv[0], ranges.uv[1])
+              : randUniform(ranges.uv[0], ranges.uv[1]);
+        }
+
+        rows.push({
+          index: i + 1,
+          timestamp: ts.toISOString(),
+          temperatureC: parseFloat(temp.toFixed(2)),
+          humidity: parseFloat(hum.toFixed(2)),
+          pressurehPa: parseFloat(pres.toFixed(2)),
+          uvIndex: parseFloat(uv.toFixed(2)),
+        });
+      }
+
+      data = rows;
+      pageIndex = 0;
+      updateStatsAndUI();
+    }
+
+    function updateStatsAndUI() {
+      totalRowsEl.textContent = data.length.toString();
+      computeStats();
+      drawChart();
+      updatePagination();
+      renderTablePage();
+      exportInfo.textContent = data.length ? `Siap diekspor: ${data.length} baris.` : 'Belum ada data untuk diekspor.';
+    }
+
+    function computeStats() {
+      if (!data.length) {
+        Object.values(stat).forEach(group => {
+          group.avg.textContent = '-';
+          group.min.textContent = '-';
+          group.max.textContent = '-';
+        });
+        return;
+      }
+      const agg = {
+        temp: { sum: 0, min: Infinity, max: -Infinity },
+        hum:  { sum: 0, min: Infinity, max: -Infinity },
+        pres: { sum: 0, min: Infinity, max: -Infinity },
+        uv:   { sum: 0, min: Infinity, max: -Infinity },
+      };
+      for (const r of data) {
+        agg.temp.sum += r.temperatureC; agg.temp.min = Math.min(agg.temp.min, r.temperatureC); agg.temp.max = Math.max(agg.temp.max, r.temperatureC);
+        agg.hum.sum  += r.humidity;     agg.hum.min  = Math.min(agg.hum.min,  r.humidity);     agg.hum.max  = Math.max(agg.hum.max,  r.humidity);
+        agg.pres.sum += r.pressurehPa;  agg.pres.min = Math.min(agg.pres.min, r.pressurehPa);  agg.pres.max = Math.max(agg.pres.max, r.pressurehPa);
+        agg.uv.sum   += r.uvIndex;      agg.uv.min   = Math.min(agg.uv.min,   r.uvIndex);      agg.uv.max   = Math.max(agg.uv.max,   r.uvIndex);
+      }
+      const n = data.length;
+      stat.temp.avg.textContent = (agg.temp.sum / n).toFixed(2);
+      stat.temp.min.textContent = (agg.temp.min).toFixed(2);
+      stat.temp.max.textContent = (agg.temp.max).toFixed(2);
+
+      stat.hum.avg.textContent  = (agg.hum.sum / n).toFixed(2);
+      stat.hum.min.textContent  = (agg.hum.min).toFixed(2);
+      stat.hum.max.textContent  = (agg.hum.max).toFixed(2);
+
+      stat.pres.avg.textContent = (agg.pres.sum / n).toFixed(2);
+      stat.pres.min.textContent = (agg.pres.min).toFixed(2);
+      stat.pres.max.textContent = (agg.pres.max).toFixed(2);
+
+      stat.uv.avg.textContent   = (agg.uv.sum / n).toFixed(2);
+      stat.uv.min.textContent   = (agg.uv.min).toFixed(2);
+      stat.uv.max.textContent   = (agg.uv.max).toFixed(2);
+    }
+
+    // Chart logic
+    const colors = {
+      temp: '#f59e0b',
+      hum:  '#22c55e',
+      pres: '#60a5fa',
+      uv:   '#a78bfa',
+      grid: 'rgba(148,163,184,0.12)',
+      axis: 'rgba(148,163,184,0.4)',
+      hover: 'rgba(255,255,255,0.2)',
+    };
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(rect.width * ratio);
+      canvas.height = Math.floor(rect.height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      drawChart();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function drawChart() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      // Padding for axes
+      const pad = { l: 40, r: 12, t: 10, b: 24 };
+      const w = rect.width - pad.l - pad.r;
+      const h = rect.height - pad.t - pad.b;
+
+      // Background grid
+      ctx.save();
+      ctx.translate(pad.l, pad.t);
+      ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = 1;
+      // Horizontal grid lines for 0..1
+      for (let i = 0; i <= 5; i++) {
+        const y = h - (h * i / 5);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+      // Vertical grid lines
+      const vLines = 8;
+      for (let i = 0; i <= vLines; i++) {
+        const x = w * i / vLines;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+
+      // Axes labels 0..1
+      ctx.fillStyle = colors.axis;
+      ctx.font = '12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i <= 5; i++) {
+        const y = h - (h * i / 5);
+        const val = (i / 5).toFixed(1);
+        ctx.fillText(val, -8, y);
+      }
+      ctx.restore();
+
+      if (!data.length) return;
+
+      // Build arrays
+      const xs = data.map((_, i) => i);
+      const ranges = {
+        temp: [parseFloat(inputs.tempMin.value), parseFloat(inputs.tempMax.value)],
+        hum:  [parseFloat(inputs.humMin.value),  parseFloat(inputs.humMax.value)],
+        pres: [parseFloat(inputs.presMin.value), parseFloat(inputs.presMax.value)],
+        uv:   [parseFloat(inputs.uvMin.value),   parseFloat(inputs.uvMax.value)],
+      };
+
+      const norm = {
+        temp: data.map(d => map01(d.temperatureC, ranges.temp[0], ranges.temp[1])),
+        hum:  data.map(d => map01(d.humidity,     ranges.hum[0],  ranges.hum[1])),
+        pres: data.map(d => map01(d.pressurehPa,  ranges.pres[0], ranges.pres[1])),
+        uv:   data.map(d => map01(d.uvIndex,      ranges.uv[0],   ranges.uv[1])),
+      };
+
+      // Draw one series helper
+      function drawSeries(arr, color) {
+        ctx.save();
+        ctx.translate(pad.l, pad.t);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < arr.length; i++) {
+          const x = (i / Math.max(1, arr.length - 1)) * w;
+          const y = h - clamp(arr[i], 0, 1) * h;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      drawSeries(norm.temp, colors.temp);
+      drawSeries(norm.hum, colors.hum);
+      drawSeries(norm.pres, colors.pres);
+      drawSeries(norm.uv, colors.uv);
+    }
+
+    // Chart tooltip interactions
+    canvas.addEventListener('mousemove', (e) => {
+      if (!data.length) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const pad = { l: 40, r: 12, t: 10, b: 24 };
+      const plotLeft = pad.l;
+      const plotRight = rect.width - pad.r;
+      const plotTop = pad.t;
+      const plotBottom = rect.height - pad.b;
+      if (x < plotLeft || x > plotRight || y < plotTop || y > plotBottom) {
+        tooltip.classList.add('hidden');
+        drawChart();
+        return;
+      }
+
+      const w = plotRight - plotLeft;
+      const relX = (x - plotLeft) / Math.max(1, w);
+      const idx = clamp(Math.round(relX * (data.length - 1)), 0, data.length - 1);
+
+      // Redraw chart and hover line
+      drawChart();
+      const ctx2 = ctx;
+      ctx2.save();
+      ctx2.strokeStyle = colors.hover;
+      ctx2.lineWidth = 1;
+      ctx2.setLineDash([4, 4]);
+      ctx2.beginPath();
+      ctx2.moveTo(x, plotTop);
+      ctx2.lineTo(x, plotBottom);
+      ctx2.stroke();
+      ctx2.restore();
+
+      // Tooltip content
+      const d = data[idx];
+      const html = `
+        <div class="font-semibold text-slate-200 mb-1">#${d.index}</div>
+        <div class="text-slate-300">${new Date(d.timestamp).toLocaleString()}</div>
+        <div class="mt-1">
+          <div><span style="color:${colors.temp}">●</span> Suhu: <b>${d.temperatureC.toFixed(2)} °C</b></div>
+          <div><span style="color:${colors.hum}">●</span> Kelembaban: <b>${d.humidity.toFixed(2)} %</b></div>
+          <div><span style="color:${colors.pres}">●</span> Tekanan: <b>${d.pressurehPa.toFixed(2)} hPa</b></div>
+          <div><span style="color:${colors.uv}">●</span> UV: <b>${d.uvIndex.toFixed(2)}</b></div>
         </div>
-    </footer>
+      `;
+      tooltip.innerHTML = html;
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${plotTop + 8}px`;
+      tooltip.classList.remove('hidden');
+    });
 
-    <script>
-        // Initialize charts
-        let tempHumidityChart, phUvChart;
+    canvas.addEventListener('mouseleave', () => {
+      tooltip.classList.add('hidden');
+      drawChart();
+    });
 
-        // Sample data for demonstration
-        const timeLabels = Array.from({length: 24}, (_, i) => {
-            const hour = i;
-            return hour.toString().padStart(2, '0') + ':00';
-        });
+    // Table rendering and pagination
+    function updatePagination() {
+      pageSize = parseInt(pageSizeEl.value, 10);
+      const count = data.length;
+      const pages = Math.max(1, Math.ceil(count / pageSize));
+      pageIndex = clamp(pageIndex, 0, pages - 1);
+      pageIndexEl.textContent = (pages ? pageIndex + 1 : 0).toString();
+      pageCountEl.textContent = pages.toString();
+      btn.prevPage.disabled = pageIndex <= 0;
+      btn.firstPage.disabled = pageIndex <= 0;
+      btn.nextPage.disabled = pageIndex >= pages - 1;
+      btn.lastPage.disabled = pageIndex >= pages - 1;
+      [btn.prevPage, btn.firstPage, btn.nextPage, btn.lastPage].forEach(b => {
+        b.classList.toggle('opacity-50', b.disabled);
+        b.classList.toggle('cursor-not-allowed', b.disabled);
+      });
+    }
 
-        const temperatureData = Array.from({length: 24}, () => 
-            22 + Math.random() * 8 + Math.sin(Date.now() / 1000) * 2
-        );
+    function renderTablePage() {
+      tableBody.innerHTML = '';
+      if (!data.length) return;
 
-        const humidityData = Array.from({length: 24}, () => 
-            60 + Math.random() * 20 + Math.sin(Date.now() / 1000 + 1) * 5
-        );
+      const start = pageIndex * pageSize;
+      const end = Math.min(start + pageSize, data.length);
+      const frag = document.createDocumentFragment();
 
-        const phData = Array.from({length: 24}, () => 
-            5.5 + Math.random() * 2 + Math.sin(Date.now() / 1000 + 2) * 0.5
-        );
+      for (let i = start; i < end; i++) {
+        const row = data[i];
+        const tr = document.createElement('tr');
+        tr.className = i % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-900/20';
 
-        const uvData = Array.from({length: 24}, () => 
-            5 + Math.random() * 5 + Math.sin(Date.now() / 1000 + 3) * 2
-        );
+        const tdIndex = document.createElement('td');
+        tdIndex.className = 'px-4 py-2 border-b border-slate-800 text-slate-300';
+        tdIndex.textContent = row.index;
 
-        function initCharts() {
-            // Temperature & Humidity Chart
-            const tempHumidityCtx = document.getElementById('tempHumidityChart').getContext('2d');
-            tempHumidityChart = new Chart(tempHumidityCtx, {
-                type: 'line',
-                data: {
-                    labels: timeLabels,
-                    datasets: [{
-                        label: 'Suhu (°C)',
-                        data: temperatureData,
-                        borderColor: '#ef4444',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        yAxisID: 'y'
-                    }, {
-                        label: 'Kelembaban (%)',
-                        data: humidityData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        yAxisID: 'y1'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: 'Suhu (°C)'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: {
-                                display: true,
-                                text: 'Kelembaban (%)'
-                            },
-                            grid: {
-                                drawOnChartArea: false,
-                            },
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
+        const tdTs = document.createElement('td');
+        tdTs.className = 'px-4 py-2 border-b border-slate-800 text-slate-300';
+        tdTs.textContent = new Date(row.timestamp).toLocaleString();
 
-            // pH & UV Chart
-            const phUvCtx = document.getElementById('phUvChart').getContext('2d');
-            phUvChart = new Chart(phUvCtx, {
-                type: 'line',
-                data: {
-                    labels: timeLabels,
-                    datasets: [{
-                        label: 'pH',
-                        data: phData,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        yAxisID: 'y'
-                    }, {
-                        label: 'UV Index',
-                        data: uvData,
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        yAxisID: 'y1'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: 'pH'
-                            },
-                            min: 4,
-                            max: 8
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: {
-                                display: true,
-                                text: 'UV Index'
-                            },
-                            min: 0,
-                            max: 12,
-                            grid: {
-                                drawOnChartArea: false,
-                            },
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-        }
+        const tdTemp = document.createElement('td');
+        tdTemp.className = 'px-4 py-2 border-b border-slate-800';
+        tdTemp.innerHTML = `<span class="text-amber-300 font-medium">${row.temperatureC.toFixed(2)}</span>`;
 
-        function updateSensorData() {
-            // Simulate real-time data
-            const temp = 25.4 + (Math.random() - 0.5) * 2;
-            const humidity = 68 + (Math.random() - 0.5) * 10;
-            const pressure = 1013 + (Math.random() - 0.5) * 20;
-            const ph = 6.8 + (Math.random() - 0.5) * 1;
-            const uv = 7.2 + (Math.random() - 0.5) * 2;
+        const tdHum = document.createElement('td');
+        tdHum.className = 'px-4 py-2 border-b border-slate-800';
+        tdHum.innerHTML = `<span class="text-emerald-300 font-medium">${row.humidity.toFixed(2)}</span>`;
 
-            // Update display values
-            document.getElementById('temperature').textContent = temp.toFixed(1);
-            document.getElementById('humidity').textContent = Math.round(humidity);
-            document.getElementById('pressure').textContent = Math.round(pressure);
-            document.getElementById('ph').textContent = ph.toFixed(1);
-            document.getElementById('uv').textContent = uv.toFixed(1);
+        const tdPres = document.createElement('td');
+        tdPres.className = 'px-4 py-2 border-b border-slate-800';
+        tdPres.innerHTML = `<span class="text-sky-300 font-medium">${row.pressurehPa.toFixed(2)}</span>`;
 
-            // Update status indicators
-            updateStatus('tempStatus', temp, 22, 28);
-            updateStatus('humidityStatus', humidity, 60, 80);
-            updateStatus('pressureStatus', pressure, 1000, 1020);
-            updateStatus('phStatus', ph, 5.5, 6.5);
-            updateStatus('uvStatus', uv, 6, 9);
+        const tdUv = document.createElement('td');
+        tdUv.className = 'px-4 py-2 border-b border-slate-800';
+        tdUv.innerHTML = `<span class="text-violet-300 font-medium">${row.uvIndex.toFixed(2)}</span>`;
 
-            // Update last update time
-            const now = new Date();
-            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+        tr.appendChild(tdIndex);
+        tr.appendChild(tdTs);
+        tr.appendChild(tdTemp);
+        tr.appendChild(tdHum);
+        tr.appendChild(tdPres);
+        tr.appendChild(tdUv);
+        frag.appendChild(tr);
+      }
+      tableBody.appendChild(frag);
+    }
 
-            // Check for alerts
-            checkAlerts(temp, humidity, pressure, ph, uv);
-        }
+    pageSizeEl.addEventListener('change', () => {
+      pageIndex = 0;
+      updatePagination();
+      renderTablePage();
+    });
+    btn.firstPage.addEventListener('click', () => { pageIndex = 0; updatePagination(); renderTablePage(); });
+    btn.prevPage.addEventListener('click', () => { pageIndex = Math.max(0, pageIndex - 1); updatePagination(); renderTablePage(); });
+    btn.nextPage.addEventListener('click', () => {
+      const pages = Math.max(1, Math.ceil(data.length / pageSize));
+      pageIndex = Math.min(pages - 1, pageIndex + 1);
+      updatePagination(); renderTablePage();
+    });
+    btn.lastPage.addEventListener('click', () => {
+      const pages = Math.max(1, Math.ceil(data.length / pageSize));
+      pageIndex = pages - 1; updatePagination(); renderTablePage();
+    });
 
-        function updateStatus(elementId, value, min, max) {
-            const element = document.getElementById(elementId);
-            if (value >= min && value <= max) {
-                element.className = 'status-indicator status-normal';
-            } else if ((value < min && value >= min * 0.9) || (value > max && value <= max * 1.1)) {
-                element.className = 'status-indicator status-warning';
-            } else {
-                element.className = 'status-indicator status-danger';
-            }
-        }
+    // Export
+    function toCSV(rows) {
+      const header = ['index','timestamp','temperatureC','humidity','pressurehPa','uvIndex'];
+      const lines = [header.join(',')];
+      for (const r of rows) {
+        const line = [
+          r.index,
+          r.timestamp,
+          r.temperatureC,
+          r.humidity,
+          r.pressurehPa,
+          r.uvIndex
+        ].join(',');
+        lines.push(line);
+      }
+      return lines.join('\n');
+    }
 
-        function checkAlerts(temp, humidity, pressure, ph, uv) {
-            let alertMessage = '';
-            let alertType = 'warning';
+    function download(filename, content, mime = 'text/plain') {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
 
-            if (ph < 5.5 || ph > 6.5) {
-                alertMessage = `pH air di luar range optimal: ${ph.toFixed(1)} pH`;
-                alertType = 'warning';
-            }
+    btn.exportCsv.addEventListener('click', () => {
+      if (!data.length) return;
+      const csv = toCSV(data);
+      download(`dummy-data-${Date.now()}.csv`, csv, 'text/csv');
+    });
 
-            if (temp < 22 || temp > 28) {
-                alertMessage = `Suhu udara di luar range optimal: ${temp.toFixed(1)}°C`;
-                alertType = temp < 20 || temp > 30 ? 'danger' : 'warning';
-            }
+    btn.exportJson.addEventListener('click', () => {
+      if (!data.length) return;
+      const json = JSON.stringify(data, null, 2);
+      download(`dummy-data-${Date.now()}.json`, json, 'application/json');
+    });
 
-            if (alertMessage) {
-                showAlert(alertMessage, alertType);
-            }
-        }
+    btn.copyCsv.addEventListener('click', async () => {
+      if (!data.length) return;
+      const csv = toCSV(data);
+      try {
+        await navigator.clipboard.writeText(csv);
+        exportInfo.textContent = 'CSV disalin ke clipboard.';
+      } catch {
+        exportInfo.textContent = 'Gagal menyalin CSV. Izin clipboard ditolak.';
+      }
+    });
 
-        function showAlert(message, type) {
-            const banner = document.getElementById('alertBanner');
-            const messageEl = document.getElementById('alertMessage');
-            
-            messageEl.textContent = message;
-            banner.className = `alert-banner bg-${type === 'danger' ? 'red' : 'yellow'}-500 text-white px-4 py-2`;
-            banner.classList.remove('hidden');
+    btn.copyJson.addEventListener('click', async () => {
+      if (!data.length) return;
+      const json = JSON.stringify(data, null, 2);
+      try {
+        await navigator.clipboard.writeText(json);
+        exportInfo.textContent = 'JSON disalin ke clipboard.';
+      } catch {
+        exportInfo.textContent = 'Gagal menyalin JSON. Izin clipboard ditolak.';
+      }
+    });
 
-            // Auto hide after 5 seconds
-            setTimeout(() => {
-                closeAlert();
-            }, 5000);
-        }
+    // Generate and Clear
+    btn.generate.addEventListener('click', () => {
+      try {
+        generateData();
+      } catch (err) {
+        alert(err.message || 'Terjadi kesalahan saat generate data.');
+      }
+    });
 
-        function closeAlert() {
-            document.getElementById('alertBanner').classList.add('hidden');
-        }
+    btn.clear.addEventListener('click', () => {
+      data = [];
+      updateStatsAndUI();
+      drawChart();
+    });
 
-        // Control button handlers
-        document.querySelectorAll('.control-button').forEach(button => {
-            button.addEventListener('click', function() {
-                // Add visual feedback
-                this.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    this.style.transform = 'scale(1)';
-                }, 100);
-                
-                // Here you would implement actual control logic
-                console.log('Button clicked:', this.textContent.trim());
-            });
-        });
-
-        // Initialize everything when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            initCharts();
-            updateSensorData();
-            
-            // Update data every 30 seconds
-            setInterval(updateSensorData, 30000);
-            
-            // Update charts every minute
-            setInterval(() => {
-                // Add new data point and remove oldest
-                temperatureData.shift();
-                temperatureData.push(25.4 + (Math.random() - 0.5) * 2);
-                
-                humidityData.shift();
-                humidityData.push(68 + (Math.random() - 0.5) * 10);
-                
-                phData.shift();
-                phData.push(6.8 + (Math.random() - 0.5) * 1);
-                
-                uvData.shift();
-                uvData.push(7.2 + (Math.random() - 0.5) * 2);
-                
-                // Update charts
-                tempHumidityChart.update();
-                phUvChart.update();
-            }, 60000);
-        });
-    </script>
+    // Initial draw
+    drawChart();
+  </script>
 </body>
 </html>
 
