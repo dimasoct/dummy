@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Hidroponik Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-normal { background-color: #10b981; }
+        .status-warning { background-color: #f59e0b; }
+        .status-danger { background-color: #ef4444; }
+        
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .alert-banner {
+            animation: slideInDown 0.5s ease-out;
+        }
+        
+        @keyframes slideInDown {
+            from {
+                transform: translate3d(0, -100%, 0);
+                visibility: visible;
+            }
+            to {
+                transform: translate3d(0, 0, 0);
+            }
+        }
+        
+        .data-card {
+            background: linear-gradient(145deg, #ffffff, #f8fafc);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .control-button {
+            transition: all 0.2s ease;
+        }
+        
+        .control-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .control-button:active {
+            transform: scale(0.95);
+        }
+        
+        .sidebar {
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-mobile {
+            transform: translateX(-100%);
+        }
+        
+        .sidebar-mobile.open {
+            transform: translateX(0);
+        }
+        
+        .blur-backdrop {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+                        <i class="fas fa-seedling text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Smart Hidroponik</h1>
+                        <p class="text-blue-100">Dashboard Monitoring</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right hidden md:block">
+                        <p class="text-blue-100">Terakhir Update</p>
+                        <p class="text-white font-semibold" id="lastUpdate">--:--:--</p>
+                    </div>
+                    <div class="status-indicator status-normal pulse"></div>
+                    <span class="text-sm">Online</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Alert Banner -->
+    <div id="alertBanner" class="hidden alert-banner bg-yellow-500 text-white px-4 py-2">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span id="alertMessage">Peringatan sistem</span>
+            </div>
+            <button onclick="closeAlert()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <!-- System Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <!-- Suhu Udara -->
+            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-thermometer-half text-red-600 text-xl"></i>
+                    </div>
+                    <span class="status-indicator status-normal" id="tempStatus"></span>
+                </div>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">Suhu Udara</h3>
+                <div class="flex items-baseline">
+                    <span class="text-3xl font-bold text-gray-800" id="temperature">25.4</span>
+                    <span class="text-gray-500 ml-1">°C</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Optimal: 22-28°C</p>
+            </div>
+
+            <!-- Kelembaban Udara -->
+            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-tint text-blue-600 text-xl"></i>
+                    </div>
+                    <span class="status-indicator status-normal" id="humidityStatus"></span>
+                </div>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">Kelembaban Udara</h3>
+                <div class="flex items-baseline">
+                    <span class="text-3xl font-bold text-gray-800" id="humidity">68</span>
+                    <span class="text-gray-500 ml-1">%</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Optimal: 60-80%</p>
+            </div>
+
+            <!-- Tekanan Udara -->
+            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-wind text-purple-600 text-xl"></i>
+                    </div>
+                    <span class="status-indicator status-normal" id="pressureStatus"></span>
+                </div>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">Tekanan Udara</h3>
+                <div class="flex items-baseline">
+                    <span class="text-3xl font-bold text-gray-800" id="pressure">1013</span>
+                    <span class="text-gray-500 ml-1">hPa</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Normal: 1000-1020 hPa</p>
+            </div>
+
+            <!-- pH Air -->
+            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-flask text-green-600 text-xl"></i>
+                    </div>
+                    <span class="status-indicator status-warning" id="phStatus"></span>
+                </div>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">pH Air</h3>
+                <div class="flex items-baseline">
+                    <span class="text-3xl font-bold text-gray-800" id="ph">6.8</span>
+                    <span class="text-gray-500 ml-1">pH</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Optimal: 5.5-6.5 pH</p>
+            </div>
+
+            <!-- Intensitas UV -->
+            <div class="data-card card-hover bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-sun text-yellow-600 text-xl"></i>
+                    </div>
+                    <span class="status-indicator status-normal" id="uvStatus"></span>
+                </div>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">Intensitas UV</h3>
+                <div class="flex items-baseline">
+                    <span class="text-3xl font-bold text-gray-800" id="uv">7.2</span>
+                    <span class="text-gray-500 ml-1">Index</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Optimal: 6-9 Index</p>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Temperature & Humidity Chart -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Suhu & Kelembaban (24 Jam)</h3>
+                    <div class="flex space-x-2">
+                        <span class="flex items-center text-sm text-gray-600">
+                            <div class="w-3 h-3 bg-red-500 rounded mr-2"></div>
+                            Suhu
+                        </span>
+                        <span class="flex items-center text-sm text-gray-600">
+                            <div class="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                            Kelembaban
+                        </span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="tempHumidityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- pH & UV Chart -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">pH & UV Index (24 Jam)</h3>
+                    <div class="flex space-x-2">
+                        <span class="flex items-center text-sm text-gray-600">
+                            <div class="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                            pH
+                        </span>
+                        <span class="flex items-center text-sm text-gray-600">
+                            <div class="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
+                            UV
+                        </span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="phUvChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel & System Info -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Control Panel -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-6">Panel Kontrol</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button class="control-button bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex flex-col items-center space-y-2">
+                        <i class="fas fa-power-off text-xl"></i>
+                        <span class="text-sm">Pompa Air</span>
+                    </button>
+                    <button class="control-button bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-4 rounded-lg flex flex-col items-center space-y-2">
+                        <i class="fas fa-lightbulb text-xl"></i>
+                        <span class="text-sm">LED Grow</span>
+                    </button>
+                    <button class="control-button bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg flex flex-col items-center space-y-2">
+                        <i class="fas fa-fan text-xl"></i>
+                        <span class="text-sm">Ventilasi</span>
+                    </button>
+                    <button class="control-button bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg flex flex-col items-center space-y-2">
+                        <i class="fas fa-spray-can text-xl"></i>
+                        <span class="text-sm">Nutrisi</span>
+                    </button>
+                </div>
+
+                <!-- System Status -->
+                <div class="mt-8">
+                    <h4 class="font-semibold text-gray-800 mb-4">Status Sistem</h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="status-indicator status-normal"></div>
+                                <span class="text-gray-700">Pompa Air</span>
+                            </div>
+                            <span class="text-sm text-green-600 font-medium">Aktif</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="status-indicator status-normal"></div>
+                                <span class="text-gray-700">LED Grow Light</span>
+                            </div>
+                            <span class="text-sm text-green-600 font-medium">Aktif</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="status-indicator status-warning"></div>
+                                <span class="text-gray-700">Sistem Ventilasi</span>
+                            </div>
+                            <span class="text-sm text-yellow-600 font-medium">Standby</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Information -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-6">Informasi Sistem</h3>
+                
+                <!-- Plant Growth Stage -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1089b6a5-c4ae-4c48-bddc-9d53d0cc53b8.png" alt="Healthy green hydroponic lettuce plants growing in nutrient solution under LED grow lights" class="w-full h-32 object-cover rounded-lg mb-4"/>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Tahap Pertumbuhan</h4>
+                    <div class="bg-green-100 rounded-lg p-3">
+                        <p class="text-green-800 font-medium">Vegetatif</p>
+                        <p class="text-green-600 text-sm">Hari ke-21 dari 45 hari</p>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Uptime Sistem</span>
+                        <span class="font-semibold text-gray-800">7d 12h 34m</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Data Points</span>
+                        <span class="font-semibold text-gray-800">2,847</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Koneksi WiFi</span>
+                        <span class="font-semibold text-green-600">Stabil</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Konsumsi Daya</span>
+                        <span class="font-semibold text-gray-800">145W</span>
+                    </div>
+                </div>
+
+                <!-- Weather Info -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h4 class="font-semibold text-gray-800 mb-3">Cuaca Eksternal</h4>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-cloud-sun text-yellow-500 text-2xl mr-3"></i>
+                            <div>
+                                <p class="font-medium text-gray-800">Berawan</p>
+                                <p class="text-sm text-gray-600">29°C, 65% RH</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <i class="fas fa-seedling text-green-600"></i>
+                    <span class="text-gray-600">Smart Hidroponik Dashboard v1.2</span>
+                </div>
+                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                    <span>Data diperbarui setiap 30 detik</span>
+                    <span>•</span>
+                    <span>Status: Terhubung</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize charts
+        let tempHumidityChart, phUvChart;
+
+        // Sample data for demonstration
+        const timeLabels = Array.from({length: 24}, (_, i) => {
+            const hour = i;
+            return hour.toString().padStart(2, '0') + ':00';
+        });
+
+        const temperatureData = Array.from({length: 24}, () => 
+            22 + Math.random() * 8 + Math.sin(Date.now() / 1000) * 2
+        );
+
+        const humidityData = Array.from({length: 24}, () => 
+            60 + Math.random() * 20 + Math.sin(Date.now() / 1000 + 1) * 5
+        );
+
+        const phData = Array.from({length: 24}, () => 
+            5.5 + Math.random() * 2 + Math.sin(Date.now() / 1000 + 2) * 0.5
+        );
+
+        const uvData = Array.from({length: 24}, () => 
+            5 + Math.random() * 5 + Math.sin(Date.now() / 1000 + 3) * 2
+        );
+
+        function initCharts() {
+            // Temperature & Humidity Chart
+            const tempHumidityCtx = document.getElementById('tempHumidityChart').getContext('2d');
+            tempHumidityChart = new Chart(tempHumidityCtx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Suhu (°C)',
+                        data: temperatureData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Kelembaban (%)',
+                        data: humidityData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Suhu (°C)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Kelembaban (%)'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // pH & UV Chart
+            const phUvCtx = document.getElementById('phUvChart').getContext('2d');
+            phUvChart = new Chart(phUvCtx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'pH',
+                        data: phData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        yAxisID: 'y'
+                    }, {
+                        label: 'UV Index',
+                        data: uvData,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'pH'
+                            },
+                            min: 4,
+                            max: 8
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'UV Index'
+                            },
+                            min: 0,
+                            max: 12,
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSensorData() {
+            // Simulate real-time data
+            const temp = 25.4 + (Math.random() - 0.5) * 2;
+            const humidity = 68 + (Math.random() - 0.5) * 10;
+            const pressure = 1013 + (Math.random() - 0.5) * 20;
+            const ph = 6.8 + (Math.random() - 0.5) * 1;
+            const uv = 7.2 + (Math.random() - 0.5) * 2;
+
+            // Update display values
+            document.getElementById('temperature').textContent = temp.toFixed(1);
+            document.getElementById('humidity').textContent = Math.round(humidity);
+            document.getElementById('pressure').textContent = Math.round(pressure);
+            document.getElementById('ph').textContent = ph.toFixed(1);
+            document.getElementById('uv').textContent = uv.toFixed(1);
+
+            // Update status indicators
+            updateStatus('tempStatus', temp, 22, 28);
+            updateStatus('humidityStatus', humidity, 60, 80);
+            updateStatus('pressureStatus', pressure, 1000, 1020);
+            updateStatus('phStatus', ph, 5.5, 6.5);
+            updateStatus('uvStatus', uv, 6, 9);
+
+            // Update last update time
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+
+            // Check for alerts
+            checkAlerts(temp, humidity, pressure, ph, uv);
+        }
+
+        function updateStatus(elementId, value, min, max) {
+            const element = document.getElementById(elementId);
+            if (value >= min && value <= max) {
+                element.className = 'status-indicator status-normal';
+            } else if ((value < min && value >= min * 0.9) || (value > max && value <= max * 1.1)) {
+                element.className = 'status-indicator status-warning';
+            } else {
+                element.className = 'status-indicator status-danger';
+            }
+        }
+
+        function checkAlerts(temp, humidity, pressure, ph, uv) {
+            let alertMessage = '';
+            let alertType = 'warning';
+
+            if (ph < 5.5 || ph > 6.5) {
+                alertMessage = `pH air di luar range optimal: ${ph.toFixed(1)} pH`;
+                alertType = 'warning';
+            }
+
+            if (temp < 22 || temp > 28) {
+                alertMessage = `Suhu udara di luar range optimal: ${temp.toFixed(1)}°C`;
+                alertType = temp < 20 || temp > 30 ? 'danger' : 'warning';
+            }
+
+            if (alertMessage) {
+                showAlert(alertMessage, alertType);
+            }
+        }
+
+        function showAlert(message, type) {
+            const banner = document.getElementById('alertBanner');
+            const messageEl = document.getElementById('alertMessage');
+            
+            messageEl.textContent = message;
+            banner.className = `alert-banner bg-${type === 'danger' ? 'red' : 'yellow'}-500 text-white px-4 py-2`;
+            banner.classList.remove('hidden');
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                closeAlert();
+            }, 5000);
+        }
+
+        function closeAlert() {
+            document.getElementById('alertBanner').classList.add('hidden');
+        }
+
+        // Control button handlers
+        document.querySelectorAll('.control-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // Add visual feedback
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 100);
+                
+                // Here you would implement actual control logic
+                console.log('Button clicked:', this.textContent.trim());
+            });
+        });
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            updateSensorData();
+            
+            // Update data every 30 seconds
+            setInterval(updateSensorData, 30000);
+            
+            // Update charts every minute
+            setInterval(() => {
+                // Add new data point and remove oldest
+                temperatureData.shift();
+                temperatureData.push(25.4 + (Math.random() - 0.5) * 2);
+                
+                humidityData.shift();
+                humidityData.push(68 + (Math.random() - 0.5) * 10);
+                
+                phData.shift();
+                phData.push(6.8 + (Math.random() - 0.5) * 1);
+                
+                uvData.shift();
+                uvData.push(7.2 + (Math.random() - 0.5) * 2);
+                
+                // Update charts
+                tempHumidityChart.update();
+                phUvChart.update();
+            }, 60000);
+        });
+    </script>
+</body>
+</html>
+
