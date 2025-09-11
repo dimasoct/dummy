@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <title>Generator Data Dummy: Suhu, Kelembaban, Tekanan, UV</title>
+  <title>Generator Data Dummy: Suhu, Kelembaban, Tekanan, UV, pH Air</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -70,7 +70,7 @@
         Generator Data Dummy IoT Lingkungan
       </h1>
       <p class="text-slate-300 mt-2 max-w-3xl">
-        Buat data dummy sederhana untuk parameter suhu, kelembaban, tekanan udara, dan intensitas UV. Atur jumlah data yang ingin digenerate, interval waktu, distribusi, rentang nilai, dan opsi siklus harian realistis. Data dapat diekspor ke CSV atau JSON.
+        Buat data dummy sederhana untuk parameter suhu, kelembaban, tekanan udara, intensitas UV, dan pH air. Atur jumlah data yang ingin digenerate, interval waktu, distribusi, rentang nilai, dan opsi siklus harian realistis. Data dapat diekspor ke CSV atau JSON.
       </p>
     </div>
   </header>
@@ -174,6 +174,17 @@
               </div>
             </div>
 
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-sm text-slate-300">pH Air (0-14)</label>
+                <span class="text-xs text-slate-400">Default 6.5 - 8.5</span>
+              </div>
+              <div class="minmax-grid">
+                <input id="phMin" type="number" value="6.5" step="0.1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input id="phMax" type="number" value="8.5" step="0.1" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </div>
+            </div>
+
             <div class="flex flex-wrap gap-3 pt-2">
               <button id="randomizeRanges" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">
                 Acak Rentang
@@ -219,33 +230,40 @@
       <!-- Content -->
       <section class="lg:col-span-2 space-y-6">
         <!-- Summary Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
             <div class="text-slate-400 text-xs">Suhu (°C)</div>
             <div class="flex items-baseline gap-2">
-              <div id="statTempAvg" class="text-2xl font-bold">-</div>
+              <div id="statTempAvg" class="text-xl font-bold">-</div>
               <div class="text-xs text-slate-400">min <span id="statTempMin">-</span> | max <span id="statTempMax">-</span></div>
             </div>
           </div>
           <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
             <div class="text-slate-400 text-xs">Kelembaban (%)</div>
             <div class="flex items-baseline gap-2">
-              <div id="statHumAvg" class="text-2xl font-bold">-</div>
+              <div id="statHumAvg" class="text-xl font-bold">-</div>
               <div class="text-xs text-slate-400">min <span id="statHumMin">-</span> | max <span id="statHumMax">-</span></div>
             </div>
           </div>
           <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
             <div class="text-slate-400 text-xs">Tekanan (hPa)</div>
             <div class="flex items-baseline gap-2">
-              <div id="statPresAvg" class="text-2xl font-bold">-</div>
+              <div id="statPresAvg" class="text-xl font-bold">-</div>
               <div class="text-xs text-slate-400">min <span id="statPresMin">-</span> | max <span id="statPresMax">-</span></div>
             </div>
           </div>
           <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
             <div class="text-slate-400 text-xs">UV Index</div>
             <div class="flex items-baseline gap-2">
-              <div id="statUvAvg" class="text-2xl font-bold">-</div>
+              <div id="statUvAvg" class="text-xl font-bold">-</div>
               <div class="text-xs text-slate-400">min <span id="statUvMin">-</span> | max <span id="statUvMax">-</span></div>
+            </div>
+          </div>
+          <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
+            <div class="text-slate-400 text-xs">pH Air</div>
+            <div class="flex items-baseline gap-2">
+              <div id="statPhAvg" class="text-xl font-bold">-</div>
+              <div class="text-xs text-slate-400">min <span id="statPhMin">-</span> | max <span id="statPhMax">-</span></div>
             </div>
           </div>
         </div>
@@ -266,6 +284,9 @@
               </span>
               <span class="inline-flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full" style="background:#a78bfa"></span> UV (dinormalisasi)
+              </span>
+              <span class="inline-flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background:#ec4899"></span> pH (dinormalisasi)
               </span>
             </div>
           </div>
@@ -306,6 +327,7 @@
                   <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">Kelembaban (%)</th>
                   <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">Tekanan (hPa)</th>
                   <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">UV Index</th>
+                  <th class="text-left font-medium text-slate-300 px-4 py-3 border-b border-slate-800">pH Air</th>
                 </tr>
               </thead>
               <tbody id="tableBody"></tbody>
@@ -330,7 +352,7 @@
 
   <footer class="max-w-7xl mx-auto px-4 pb-10">
     <div class="text-xs text-slate-500">
-      Tips: Aktifkan "Siklus harian realistis" untuk pola yang lebih alami. Anda juga dapat menyesuaikan rentang agar grafik lebih informatif.
+      Tips: Aktifkan "Siklus harian realistis" untuk pola yang lebih alami. Parameter pH mengikuti pola stabilitas dengan variasi kecil sepanjang hari.
     </div>
   </footer>
 
@@ -376,6 +398,8 @@
       presMax: $('#presMax'),
       uvMin: $('#uvMin'),
       uvMax: $('#uvMax'),
+      phMin: $('#phMin'),
+      phMax: $('#phMax'),
     };
 
     // Buttons
@@ -400,6 +424,7 @@
       hum:  { avg: $('#statHumAvg'),  min: $('#statHumMin'),  max: $('#statHumMax') },
       pres: { avg: $('#statPresAvg'), min: $('#statPresMin'), max: $('#statPresMax') },
       uv:   { avg: $('#statUvAvg'),   min: $('#statUvMin'),   max: $('#statUvMax') },
+      ph:   { avg: $('#statPhAvg'),   min: $('#statPhMin'),   max: $('#statPhMax') },
     };
 
     // Table and pagination
@@ -453,7 +478,7 @@
         maxEl.value = max.toFixed(2);
       }
     }
-    ['temp','hum','pres','uv'].forEach(key => {
+    ['temp','hum','pres','uv','ph'].forEach(key => {
       const minEl = inputs[`${key}Min`];
       const maxEl = inputs[`${key}Max`];
       minEl.addEventListener('change', () => ensureMinLessThanMax(minEl, maxEl));
@@ -468,6 +493,7 @@
         hum:  [randUniform(25, 45), randUniform(65, 95)],
         pres: [randUniform(985, 999), randUniform(1015, 1040)],
         uv:   [0, randUniform(8, 12)],
+        ph:   [randUniform(6.0, 7.0), randUniform(7.5, 9.0)],
       };
       // Ensure min < max
       Object.entries(ranges).forEach(([k, [mn, mx]]) => {
@@ -482,6 +508,7 @@
       inputs.humMin.value  = 30; inputs.humMax.value  = 90;
       inputs.presMin.value = 990; inputs.presMax.value = 1030;
       inputs.uvMin.value   = 0; inputs.uvMax.value    = 11;
+      inputs.phMin.value   = 6.5; inputs.phMax.value  = 8.5;
     });
 
     // Daily cycle functions (normalized 0..1)
@@ -505,6 +532,12 @@
       const daylight = clamp((hour - 6) / 12, 0, 1) * Math.PI;
       return Math.pow(Math.sin(daylight), 1.5) || 0;
     }
+    function cyclePH(hour) {
+      // pH tends to be relatively stable with small variations
+      // Slightly more acidic in early morning, slightly more alkaline during day
+      const t = (hour - 12) / 24 * 2 * Math.PI;
+      return clamp(0.5 + 0.08 * Math.sin(t), 0, 1);
+    }
 
     function generateData() {
       const count = clamp(parseInt(inputs.count.value || '0', 10), 1, 10000);
@@ -518,6 +551,7 @@
         hum:  [parseFloat(inputs.humMin.value),  parseFloat(inputs.humMax.value)],
         pres: [parseFloat(inputs.presMin.value), parseFloat(inputs.presMax.value)],
         uv:   [parseFloat(inputs.uvMin.value),   parseFloat(inputs.uvMax.value)],
+        ph:   [parseFloat(inputs.phMin.value),   parseFloat(inputs.phMax.value)],
       };
       // Validate ranges
       Object.entries(ranges).forEach(([k, [mn, mx]]) => {
@@ -531,7 +565,7 @@
         const ts = new Date(start.getTime() + i * intervalMin * 60000);
         const hour = ts.getHours() + ts.getMinutes() / 60;
 
-        let temp, hum, pres, uv;
+        let temp, hum, pres, uv, ph;
 
         if (useCycle) {
           // Base values from cycles
@@ -539,19 +573,22 @@
           const hN = cycleHumidity(hour);
           const pN = cyclePressure(hour);
           const uN = cycleUV(hour);
+          const phN = cyclePH(hour);
 
           // Map to actual ranges
           temp = lerp(ranges.temp[0], ranges.temp[1], tN);
           hum  = lerp(ranges.hum[0],  ranges.hum[1],  hN);
           pres = lerp(ranges.pres[0], ranges.pres[1], pN);
           uv   = lerp(ranges.uv[0],   ranges.uv[1],   uN);
+          ph   = lerp(ranges.ph[0],   ranges.ph[1],   phN);
 
           // Add small noise depending on distribution
           const noiseFrac = {
             temp: 0.02,
             hum: 0.03,
             pres: 0.005,
-            uv: 0.05
+            uv: 0.05,
+            ph: 0.01 // pH should be relatively stable
           };
           const addNoise = (val, key) => {
             const amp = (ranges[key][1] - ranges[key][0]) * noiseFrac[key];
@@ -565,6 +602,7 @@
           hum  = addNoise(hum, 'hum');
           pres = addNoise(pres, 'pres');
           uv   = addNoise(uv, 'uv');
+          ph   = addNoise(ph, 'ph');
 
           // Zero UV at "night" more aggressively
           if (uN < 0.02) uv = 0;
@@ -581,6 +619,9 @@
           uv   = (distribution === 'normal')
               ? randNormalClamped(ranges.uv[0], ranges.uv[1])
               : randUniform(ranges.uv[0], ranges.uv[1]);
+          ph   = (distribution === 'normal')
+              ? randNormalClamped(ranges.ph[0], ranges.ph[1])
+              : randUniform(ranges.ph[0], ranges.ph[1]);
         }
 
         rows.push({
@@ -590,6 +631,7 @@
           humidity: parseFloat(hum.toFixed(2)),
           pressurehPa: parseFloat(pres.toFixed(2)),
           uvIndex: parseFloat(uv.toFixed(2)),
+          phWater: parseFloat(ph.toFixed(2)),
         });
       }
 
@@ -621,12 +663,14 @@
         hum:  { sum: 0, min: Infinity, max: -Infinity },
         pres: { sum: 0, min: Infinity, max: -Infinity },
         uv:   { sum: 0, min: Infinity, max: -Infinity },
+        ph:   { sum: 0, min: Infinity, max: -Infinity },
       };
       for (const r of data) {
         agg.temp.sum += r.temperatureC; agg.temp.min = Math.min(agg.temp.min, r.temperatureC); agg.temp.max = Math.max(agg.temp.max, r.temperatureC);
         agg.hum.sum  += r.humidity;     agg.hum.min  = Math.min(agg.hum.min,  r.humidity);     agg.hum.max  = Math.max(agg.hum.max,  r.humidity);
         agg.pres.sum += r.pressurehPa;  agg.pres.min = Math.min(agg.pres.min, r.pressurehPa);  agg.pres.max = Math.max(agg.pres.max, r.pressurehPa);
         agg.uv.sum   += r.uvIndex;      agg.uv.min   = Math.min(agg.uv.min,   r.uvIndex);      agg.uv.max   = Math.max(agg.uv.max,   r.uvIndex);
+        agg.ph.sum   += r.phWater;      agg.ph.min   = Math.min(agg.ph.min,   r.phWater);      agg.ph.max   = Math.max(agg.ph.max,   r.phWater);
       }
       const n = data.length;
       stat.temp.avg.textContent = (agg.temp.sum / n).toFixed(2);
@@ -644,6 +688,10 @@
       stat.uv.avg.textContent   = (agg.uv.sum / n).toFixed(2);
       stat.uv.min.textContent   = (agg.uv.min).toFixed(2);
       stat.uv.max.textContent   = (agg.uv.max).toFixed(2);
+
+      stat.ph.avg.textContent   = (agg.ph.sum / n).toFixed(2);
+      stat.ph.min.textContent   = (agg.ph.min).toFixed(2);
+      stat.ph.max.textContent   = (agg.ph.max).toFixed(2);
     }
 
     // Chart logic
@@ -652,6 +700,7 @@
       hum:  '#22c55e',
       pres: '#60a5fa',
       uv:   '#a78bfa',
+      ph:   '#ec4899',
       grid: 'rgba(148,163,184,0.12)',
       axis: 'rgba(148,163,184,0.4)',
       hover: 'rgba(255,255,255,0.2)',
@@ -721,6 +770,7 @@
         hum:  [parseFloat(inputs.humMin.value),  parseFloat(inputs.humMax.value)],
         pres: [parseFloat(inputs.presMin.value), parseFloat(inputs.presMax.value)],
         uv:   [parseFloat(inputs.uvMin.value),   parseFloat(inputs.uvMax.value)],
+        ph:   [parseFloat(inputs.phMin.value),   parseFloat(inputs.phMax.value)],
       };
 
       const norm = {
@@ -728,6 +778,7 @@
         hum:  data.map(d => map01(d.humidity,     ranges.hum[0],  ranges.hum[1])),
         pres: data.map(d => map01(d.pressurehPa,  ranges.pres[0], ranges.pres[1])),
         uv:   data.map(d => map01(d.uvIndex,      ranges.uv[0],   ranges.uv[1])),
+        ph:   data.map(d => map01(d.phWater,      ranges.ph[0],   ranges.ph[1])),
       };
 
       // Draw one series helper
@@ -751,6 +802,7 @@
       drawSeries(norm.hum, colors.hum);
       drawSeries(norm.pres, colors.pres);
       drawSeries(norm.uv, colors.uv);
+      drawSeries(norm.ph, colors.ph);
     }
 
     // Chart tooltip interactions
@@ -798,6 +850,7 @@
           <div><span style="color:${colors.hum}">●</span> Kelembaban: <b>${d.humidity.toFixed(2)} %</b></div>
           <div><span style="color:${colors.pres}">●</span> Tekanan: <b>${d.pressurehPa.toFixed(2)} hPa</b></div>
           <div><span style="color:${colors.uv}">●</span> UV: <b>${d.uvIndex.toFixed(2)}</b></div>
+          <div><span style="color:${colors.ph}">●</span> pH: <b>${d.phWater.toFixed(2)}</b></div>
         </div>
       `;
       tooltip.innerHTML = html;
@@ -866,12 +919,17 @@
         tdUv.className = 'px-4 py-2 border-b border-slate-800';
         tdUv.innerHTML = `<span class="text-violet-300 font-medium">${row.uvIndex.toFixed(2)}</span>`;
 
+        const tdPh = document.createElement('td');
+        tdPh.className = 'px-4 py-2 border-b border-slate-800';
+        tdPh.innerHTML = `<span class="text-pink-300 font-medium">${row.phWater.toFixed(2)}</span>`;
+
         tr.appendChild(tdIndex);
         tr.appendChild(tdTs);
         tr.appendChild(tdTemp);
         tr.appendChild(tdHum);
         tr.appendChild(tdPres);
         tr.appendChild(tdUv);
+        tr.appendChild(tdPh);
         frag.appendChild(tr);
       }
       tableBody.appendChild(frag);
@@ -896,7 +954,7 @@
 
     // Export
     function toCSV(rows) {
-      const header = ['index','timestamp','temperatureC','humidity','pressurehPa','uvIndex'];
+      const header = ['index','timestamp','temperatureC','humidity','pressurehPa','uvIndex','phWater'];
       const lines = [header.join(',')];
       for (const r of rows) {
         const line = [
@@ -905,7 +963,8 @@
           r.temperatureC,
           r.humidity,
           r.pressurehPa,
-          r.uvIndex
+          r.uvIndex,
+          r.phWater
         ].join(',');
         lines.push(line);
       }
@@ -978,4 +1037,3 @@
   </script>
 </body>
 </html>
-
